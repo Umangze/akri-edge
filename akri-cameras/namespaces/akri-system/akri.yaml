@@ -1,0 +1,120 @@
+---
+# Source: akri/templates/onvif-discovery-handler.yaml
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: akri-onvif-discovery-daemonset
+spec:
+  selector:
+    matchLabels:
+      name: akri-onvif-discovery
+  template:
+    metadata:
+      labels:
+        name: akri-onvif-discovery
+    spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      containers:
+      - name: akri-onvif-discovery
+        image: "ghcr.io/project-akri/akri/onvif-discovery:v0.10.4"
+        resources:
+          requests:
+            memory: 11Mi
+            cpu: 10m
+          limits:
+            memory: 24Mi
+            cpu: 24m
+        env:
+        - name: DISCOVERY_HANDLERS_DIRECTORY
+          value: /var/lib/akri
+        volumeMounts:
+        - name: discovery-handlers
+          mountPath: /var/lib/akri
+      volumes:
+      - name: discovery-handlers
+        hostPath:
+          path: /var/lib/akri
+---
+# Source: akri/templates/controller.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: akri-controller-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: akri-controller
+  template:
+    metadata:
+      labels:
+        app: akri-controller
+    spec:
+      serviceAccountName: 'akri-controller-sa'
+      containers:
+      - name: akri-controller
+        image: "ghcr.io/project-akri/akri/controller:v0.10.4"
+        imagePullPolicy: Always
+        resources:
+          requests:
+            memory: 11Mi
+            cpu: 10m
+          limits:
+            memory: 100Mi
+            cpu: 26m
+      tolerations:
+        - key: node-role.kubernetes.io/master
+          effect: NoSchedule
+      nodeSelector:
+        "kubernetes.io/os": linux
+---
+# Source: akri/templates/onvif-configuration.yaml
+apiVersion: akri.sh/v0
+kind: Configuration
+metadata:
+  name: akri-onvif
+spec:
+  discoveryHandler:
+    name: onvif
+    discoveryDetails: |+
+      ipAddresses: 
+        action: Exclude
+        items: []
+      macAddresses:
+        action: Exclude
+        items: []
+      scopes:
+        action: Exclude
+        items: []
+      discoveryTimeoutSeconds: 1
+  brokerSpec:
+    brokerPodSpec:
+      containers:
+      - name: akri-onvif-broker
+        image: "ghcr.io/project-akri/akri/onvif-video-broker:latest"
+        resources:
+          requests:
+            "{{PLACEHOLDER}}" : "1"
+            memory: 98Mi
+            cpu: 134m
+          limits:
+            "{{PLACEHOLDER}}" : "1"
+            memory: 400Mi
+            cpu: 2800m
+  instanceServiceSpec:
+    type: ClusterIP
+    ports:
+    - name: grpc
+      port: 80
+      protocol: TCP
+      targetPort: 8083
+  configurationServiceSpec:
+    type: ClusterIP
+    ports:
+    - name: grpc
+      port: 80
+      protocol: TCP
+      targetPort: 8083
+  brokerProperties: {}
+  capacity: 1
