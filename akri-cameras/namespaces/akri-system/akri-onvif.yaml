@@ -1,0 +1,48 @@
+apiVersion: akri.sh/v0
+kind: Configuration
+metadata:
+  name: akri-onvif
+spec:
+  discoveryHandler:
+    name: onvif
+    discoveryDetails: |+
+      ipAddresses: 
+        action: Exclude
+        items: []
+      macAddresses:
+        action: Exclude
+        items: []
+      scopes:
+        action: Exclude
+        items: []
+      discoveryTimeoutSeconds: 1
+  brokerSpec:
+    brokerPodSpec:
+      containers:
+      - name: akri-onvif-broker
+        image: "ghcr.io/project-akri/akri/onvif-video-broker:latest"
+        resources:
+          requests:
+            "{{PLACEHOLDER}}" : "1"
+            memory: 98Mi
+            cpu: 134m
+          limits:
+            "{{PLACEHOLDER}}" : "1"
+            memory: 400Mi
+            cpu: 2800m
+  instanceServiceSpec:
+    type: ClusterIP
+    ports:
+    - name: grpc
+      port: 80
+      protocol: TCP
+      targetPort: 8083
+  configurationServiceSpec:
+    type: ClusterIP
+    ports:
+    - name: grpc
+      port: 80
+      protocol: TCP
+      targetPort: 8083
+  brokerProperties: {}
+  capacity: 1
