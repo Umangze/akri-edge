@@ -1,0 +1,35 @@
+  apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: akri-onvif-discovery-daemonset
+spec:
+  selector:
+    matchLabels:
+      name: akri-onvif-discovery
+  template:
+    metadata:
+      labels:
+        name: akri-onvif-discovery
+    spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      containers:
+      - name: akri-onvif-discovery
+        image: "ghcr.io/project-akri/akri/onvif-discovery:v0.10.4"
+        resources:
+          requests:
+            memory: 11Mi
+            cpu: 10m
+          limits:
+            memory: 24Mi
+            cpu: 24m
+        env:
+        - name: DISCOVERY_HANDLERS_DIRECTORY
+          value: /var/lib/akri
+        volumeMounts:
+        - name: discovery-handlers
+          mountPath: /var/lib/akri
+      volumes:
+      - name: discovery-handlers
+        hostPath:
+          path: /var/lib/akri
